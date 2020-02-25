@@ -9,30 +9,31 @@ MAX_RETRIES = 60
 
 def draw(filename):
     values = {
-        'rectangles': [
+        "rectangles": [
             {
-                'x': 100,
-                'y': 100,
-                'w': 100,
-                'h': 200,
+                "x": 100,
+                "y": 100,
+                "w": 100,
+                "h": 200
             },
             {
-                'x': 300,
-                'y': 300,
-                'w': 100,
-                'h': 200,
+                "x": 300,
+                "y": 300,
+                "w": 100,
+                "h": 200
             },
             {
-                'x': 200,
-                'y': 200,
-                'w': 100,
-                'h': 200,
+                "x": 200,
+                "y": 200,
+                "w": 100,
+                "h": 200
             }
         ]
     }
 
     files = {'file': (filename, open(filename, 'rb'), 'image/jpeg', {})}
-    response = requests.post(API_URL + "drawing/draw", files=files, data=values, stream=True)
+    json_str = json.dumps(values)
+    response = requests.post(API_URL + "drawing/draw", files=files, data={"json": json_str}, stream=True)
     if response.status_code == 200:
         with open('output.jpg', 'wb+') as f:
             f.write(response.raw.data)
@@ -42,4 +43,3 @@ def draw(filename):
 
 if __name__ == '__main__':
     draw('input.jpg')
-    
