@@ -1,13 +1,11 @@
-FROM python:alpine
+FROM ubuntu:18.04
 LABEL maintainer="wang-junjian@qq.com"
 
-# 修改源
-RUN echo "http://mirrors.aliyun.com/alpine/v3.11/main/" > /etc/apk/repositories && \
-    echo "http://mirrors.aliyun.com/alpine/v3.11/community/" >> /etc/apk/repositories
-
-# pillow 依赖
-RUN apk update \
-    && apk add --no-cache build-base jpeg-dev zlib-dev
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    nano \
+    && rm -rf /var/lib/apt/lists/*
 
 ENV PROJECT_PATH /drawing/
 
@@ -19,4 +17,5 @@ ADD . $PROJECT_PATH
 
 EXPOSE 8001
 
-ENTRYPOINT ["python3", "main.py"]
+CMD ["gunicorn", "main:app", "-b 0.0.0.0:8001"]
+#ENTRYPOINT ["gunicorn", "main:app", "-b 0.0.0.0:8001"]
