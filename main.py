@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import tempfile
+import re  
 
 import werkzeug
 from flask import Flask, request, jsonify, make_response, redirect, url_for, send_file
@@ -14,9 +15,10 @@ from PIL import ImageDraw
 from PIL import ImageFont
 
 """
-sudo docker build -t gouchicao/drawing:latest .
-sudo docker run --rm -it --name=drawing -p 8001:8001 gouchicao/drawing:latest
-sudo docker push gouchicao/drawing:latest
+docker build -t gouchicao/drawing:latest .
+docker run --rm -it --name=drawing -p 8001:8001 gouchicao/drawing:latest
+docker push gouchicao/drawing:latest
+docker save -o drawing.tar gouchicao/drawing:latest
 """
 
 app = Flask(__name__, static_folder='static')
@@ -71,19 +73,34 @@ class Draw(Resource):
                             "x": 100,
                             "y": 100,
                             "w": 100,
-                            "h": 200
+                            "h": 200,
+                            "text": "合",
+                            "text_color": "ff0000",
+                            "font_size": 100,
+                            "frame_color": "ff0000",
+                            "line_width": 10
                         },
                         {
                             "x": 300,
                             "y": 300,
                             "w": 100,
-                            "h": 200
+                            "h": 200,
+                            "text": "开",
+                            "text_color": "00ff00",
+                            "font_size": 100,
+                            "frame_color": "00ff00",
+                            "line_width": 10
                         },
                         {
                             "x": 200,
                             "y": 200,
                             "w": 100,
-                            "h": 200
+                            "h": 200,
+                            "text": "合",
+                            "text_color": "ff0000",
+                            "font_size": 100,
+                            "frame_color": "ff0000",
+                            "line_width": 10
                         }
                     ]
                 }
@@ -113,19 +130,34 @@ class Draw(Resource):
                         \"x\": 100,
                         \"y\": 100,
                         \"w\": 100,
-                        \"h\": 200
+                        \"h\": 200,
+                        \"text\": \"合\",
+                        \"text_color\": \"ff0000\",
+                        \"font_size\": 100,
+                        \"frame_color\": \"ff0000\",
+                        \"line_width\": 10
                     },
                     {
                         \"x\": 300,
                         \"y\": 300,
                         \"w\": 100,
-                        \"h\": 200
+                        \"h\": 200,
+                        \"text\": \"开\",
+                        \"text_color\": \"ff0000\",
+                        \"font_size\": 100,
+                        \"frame_color\": \"ff0000\",
+                        \"line_width\": 10
                     },
                     {
                         \"x\": 200,
                         \"y\": 200,
                         \"w\": 100,
-                        \"h\": 200
+                        \"h\": 200,
+                        \"text\": \"合\",
+                        \"text_color\": \"ff0000\",
+                        \"font_size\": 100,
+                        \"frame_color\": \"ff0000\",
+                        \"line_width\": 10
                     }
                 ]
             }")
@@ -146,19 +178,34 @@ class Draw(Resource):
                         \"x\": 100,
                         \"y\": 100,
                         \"w\": 100,
-                        \"h\": 200
+                        \"h\": 200,
+                        \"text\": \"合\",
+                        \"text_color\": \"ff0000\",
+                        \"font_size\": 100,
+                        \"frame_color\": \"ff0000\",
+                        \"line_width\": 10
                     },
                     {
                         \"x\": 300,
                         \"y\": 300,
                         \"w\": 100,
-                        \"h\": 200
+                        \"h\": 200,
+                        \"text\": \"开\",
+                        \"text_color\": \"ff0000\",
+                        \"font_size\": 100,
+                        \"frame_color\": \"ff0000\",
+                        \"line_width\": 10
                     },
                     {
                         \"x\": 200,
                         \"y\": 200,
                         \"w\": 100,
-                        \"h\": 200
+                        \"h\": 200,
+                        \"text\": \"合\",
+                        \"text_color\": \"ff0000\",
+                        \"font_size\": 100,
+                        \"frame_color\": \"ff0000\",
+                        \"line_width\": 10
                     }
                 ]
             }")
@@ -217,12 +264,12 @@ class Draw(Resource):
             app.logger.info('file no setting')
             return 'no file', 417
 
-        rectangles = []
-        if args.json:
-            json_obj = json.loads(args.json)
-            for rectangle in json_obj['rectangles']:
-                rectangles.append(((rectangle['x'], rectangle['y']), 
-                                (rectangle['x']+rectangle['w'], rectangle['y']+rectangle['h'])))
+        # rectangles = []
+        # if args.json:
+        #     json_obj = json.loads(args.json)
+        #     for rectangle in json_obj['rectangles']:
+        #         rectangles.append(((rectangle['x'], rectangle['y']), 
+        #                         (rectangle['x']+rectangle['w'], rectangle['y']+rectangle['h'])))
 
         img = None
         with tempfile.NamedTemporaryFile() as temp_file:
@@ -236,15 +283,45 @@ class Draw(Resource):
                 abort(401)
 
             drawing = Drawing(img)
-            for rectangle in rectangles:
-                drawing.rectangle(rectangle)
-            # drawing.text((100, 350), 'open', fontsize=30)
+            # for rectangle in rectangles:
+            #     drawing.rectangle(rectangle)
+            # # drawing.text((100, 350), 'open', fontsize=30)
+            if args.json:
+                json_obj = json.loads(args.json)
+                for rectangle in json_obj['rectangles']:
+                    frame_color = self.get_with_default(rectangle, 'frame_color', '00ff00')
+                    line_width = self.get_with_default(rectangle, 'line_width', 20)
+                    if 'x' in rectangle and 'y' in rectangle and 'w' in rectangle and 'h' in rectangle:
+                        xy = ((rectangle['x'], rectangle['y']), (rectangle['x']+rectangle['w'], rectangle['y']+rectangle['h']))
+                        drawing.rectangle(xy, color=self.color_16bit_to_rgb(frame_color, (255, 0, 0)), width=line_width)
+
+                    text_color = self.get_with_default(rectangle, 'text_color', 'ffffff')
+                    font_size = self.get_with_default(rectangle, 'font_size', 50)
+                    text = self.get_with_default(rectangle, 'text', None)
+                    if text:
+                        drawing.text((xy[0][0], xy[0][1]), text, color=self.color_16bit_to_rgb(text_color), fontsize=font_size)
+
 
             img.save(temp_file.name, 'JPEG', optimize=True)
             return send_file(temp_file.name, mimetype='image/jpeg')
 
         app.logger.info('draw failed')
         return 'draw failed', 418
+
+    def color_16bit_to_rgb(self, color, default_color = (255, 255, 255)):
+        if color and len(color)==6:
+            opt = re.findall(r'(.{2})', color)
+            rgb = ()
+            for i in range (0, len(opt)):
+                rgb = (*rgb, int(opt[i], 16))
+            return rgb
+        return default_color
+
+    def get_with_default(self, jsons, key, default_value=None):
+        value = default_value
+        if key in jsons:
+            value = jsons[key]
+        return value
 
 
 api.add_resource(Draw, '/drawing/draw')
